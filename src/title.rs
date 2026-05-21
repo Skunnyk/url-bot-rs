@@ -1,16 +1,10 @@
-use std::io::Cursor;
+use image::{ImageFormat, ImageReader};
 use itertools::Itertools;
-use image::{
-    ImageFormat,
-    io::Reader,
-};
 use mime::Mime;
 use scraper::{Html, Selector};
+use std::io::Cursor;
 
-use crate::{
-    feat,
-    config::Rtd,
-};
+use crate::{config::Rtd, feat};
 
 /// Format a mime string
 pub fn get_mime(rtd: &Rtd, mime: &Mime, size: &str) -> Option<String> {
@@ -23,12 +17,12 @@ pub fn get_mime(rtd: &Rtd, mime: &Mime, size: &str) -> Option<String> {
 
 fn get_image_mime(format: ImageFormat) -> Option<Mime> {
     let mime_str = match format {
-        ImageFormat::PNG => Some("image/png"),
-        ImageFormat::JPEG => Some("image/jpeg"),
-        ImageFormat::GIF => Some("image/gif"),
-        ImageFormat::PNM => Some("image/x-portable-anymap"),
-        ImageFormat::TIFF => Some("image/tiff"),
-        ImageFormat::BMP => Some("image/bmp"),
+        ImageFormat::Png => Some("image/png"),
+        ImageFormat::Jpeg => Some("image/jpeg"),
+        ImageFormat::Gif => Some("image/gif"),
+        ImageFormat::Pnm => Some("image/x-portable-anymap"),
+        ImageFormat::Tiff => Some("image/tiff"),
+        ImageFormat::Bmp => Some("image/bmp"),
         _ => None,
     };
 
@@ -41,9 +35,9 @@ pub fn get_image_metadata(rtd: &Rtd, body: &[u8]) -> Option<String> {
         return None;
     }
 
-    let reader = Reader::new(Cursor::new(body))
+    let reader = ImageReader::new(Cursor::new(body))
         .with_guessed_format()
-        .expect("failed to create image::Reader");
+        .expect("failed to create image::ImageReader");
 
     let mime = reader.format().and_then(get_image_mime);
 
@@ -74,11 +68,7 @@ pub fn parse_title(page_contents: &str) -> Option<String> {
 
     // make any multi-line title string into a single line,
     // trim leading and trailing whitespace
-    let title_one_line = title_dec
-        .trim()
-        .lines()
-        .map(str::trim)
-        .join(" ");
+    let title_one_line = title_dec.trim().lines().map(str::trim).join(" ");
 
     if title_one_line.is_empty() {
         return None;
@@ -91,8 +81,8 @@ pub fn parse_title(page_contents: &str) -> Option<String> {
 mod tests {
     use super::*;
     use std::fs::File;
-    use std::path::Path;
     use std::io::Read;
+    use std::path::Path;
 
     #[test]
     fn parse_titles() {
@@ -101,10 +91,7 @@ mod tests {
         assert_eq!(None, parse_title("<title></title>"));
         assert_eq!(None, parse_title("<title>    </title>"));
         assert_eq!(None, parse_title("<TITLE>    </TITLE>"));
-        assert_eq!(
-            None,
-            parse_title("floofynips, not a real webpage")
-        );
+        assert_eq!(None, parse_title("floofynips, not a real webpage"));
         assert_eq!(
             Some(String::from("title caps")),
             parse_title("<TITLE>title caps</TITLE>")
@@ -169,15 +156,15 @@ mod tests {
 
     #[test]
     fn get_metadata_from_local_images() {
-        for test in vec!(
+        for test in vec![
             ("./test/img/test.png", "image/png 800×400"),
             ("./test/img/test.jpg", "image/jpeg 400×200"),
             ("./test/img/test.gif", "image/gif 1920×1080"),
             ("./test/img/test.bmp", "image/bmp 19×19"),
             ("./test/img/test.pnm", "image/x-portable-anymap 22×22"),
             ("./test/img/test.pgm", "image/x-portable-anymap 24×24"),
-            ("./test/img/test.tiff", "image/tiff 4×4")
-        ) {
+            ("./test/img/test.tiff", "image/tiff 4×4"),
+        ] {
             get_local_image_metadata(test.0, test.1);
         }
     }
@@ -190,16 +177,10 @@ mod tests {
         f.take(100 * 1024).read_to_end(&mut body).unwrap();
 
         feat!(rtd, report_metadata) = true;
-        assert_eq!(
-            Some(String::from(result)),
-            get_image_metadata(&rtd, &body)
-        );
+        assert_eq!(Some(String::from(result)), get_image_metadata(&rtd, &body));
 
         feat!(rtd, report_metadata) = false;
-        assert_eq!(
-            None,
-            get_image_metadata(&rtd, &body)
-        );
+        assert_eq!(None, get_image_metadata(&rtd, &body));
     }
 
     #[test]

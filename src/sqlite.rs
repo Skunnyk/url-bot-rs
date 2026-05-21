@@ -1,9 +1,9 @@
-use rusqlite::Connection;
-use failure::{Error, SyncFailure};
-use std::path::Path;
-use serde_rusqlite::{from_rows, to_params_named};
 use chrono::Utc;
-use serde_derive::{Serialize, Deserialize};
+use failure::{Error, SyncFailure};
+use rusqlite::Connection;
+use serde_derive::{Deserialize, Serialize};
+use serde_rusqlite::{from_rows, to_params_named};
+use std::path::Path;
 
 pub struct Database {
     db: Connection,
@@ -21,7 +21,8 @@ impl Database {
     }
 
     fn from_connection(db: Connection) -> Result<Self, Error> {
-        db.execute("CREATE TABLE IF NOT EXISTS posts (
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS posts (
             id              INTEGER PRIMARY KEY,
             title           TEXT NOT NULL,
             url             TEXT NOT NULL,
@@ -29,14 +30,15 @@ impl Database {
             channel         TEXT NOT NULL,
             time_created    TEXT NOT NULL
             )",
-            &[]
+            [],
         )?;
-        db.execute("CREATE TABLE IF NOT EXISTS errors (
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS errors (
             id              INTEGER PRIMARY KEY,
             url             TEXT NOT NULL,
             error_info      TEXT NOT NULL
             )",
-            &[]
+            [],
         )?;
 
         Ok(Self { db })
@@ -48,25 +50,28 @@ impl Database {
         let mut params = params.to_slice();
         params.push((":time_created", &time_created));
 
-        self.db.execute_named("
+        self.db.execute(
+            "
             INSERT INTO posts ( title,  url,  user,  channel,  time_created)
             VALUES            (:title, :url, :user, :channel, :time_created)",
-            &params
+            &params[..],
         )?;
 
         Ok(())
     }
 
     pub fn check_prepost(&self, url: &str) -> Result<Option<PrevPost>, Error> {
-        let mut st = self.db.prepare("
+        let mut st = self.db.prepare(
+            "
             SELECT user, time_created, channel
             FROM posts
             WHERE url LIKE :url
-        ")?;
-        let rows = st.query_named(&[(":url", &url)])?;
+        ",
+        )?;
+        let rows = st.query(&[(":url", &url as &dyn rusqlite::ToSql)])?;
         let mut rows = from_rows::<PrevPost>(rows);
 
-        Ok(rows.next())
+        Ok(rows.next().transpose()?)
     }
 }
 
@@ -82,5 +87,5 @@ pub struct NewLogEntry<'a> {
 pub struct PrevPost {
     pub user: String,
     pub time_created: String,
-    pub channel: String
+    pub channel: String,
 }

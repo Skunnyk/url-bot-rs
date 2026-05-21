@@ -1,10 +1,11 @@
-use reqwest::{Url, header, header::HeaderMap};
-use failure::{Error, bail};
-use serde::{Serialize, Deserialize};
+use failure::{bail, Error};
+use reqwest::{header, header::HeaderMap, Url};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    plugin_conf, config::Rtd,
-    plugins::{TitlePlugin, PluginConfig},
+    config::Rtd,
+    plugin_conf,
+    plugins::{PluginConfig, TitlePlugin},
 };
 
 /// Imgur title plugin configuration structure
@@ -21,7 +22,9 @@ pub struct ImgurPlugin {}
 static REQUEST_URL: &str = "https://api.imgur.com/3/";
 
 impl TitlePlugin for ImgurPlugin {
-    fn name(&self) -> &'static str { "imgur" }
+    fn name(&self) -> &'static str {
+        "imgur"
+    }
 
     fn check(&self, config: &PluginConfig, url: &Url) -> bool {
         if config.imgur.api_key.is_empty() {
@@ -31,12 +34,12 @@ impl TitlePlugin for ImgurPlugin {
         }
     }
 
-    fn evaluate(&self, rtd: &Rtd , url: &Url) -> Result<String, Error> {
+    fn evaluate(&self, rtd: &Rtd, url: &Url) -> Result<String, Error> {
         let mut headers = HeaderMap::new();
 
-        let req_url = Url::parse(REQUEST_URL)?
+        let req_url: String = Url::parse(REQUEST_URL)?
             .join(&url.path()[1..])? // remove leading /
-            .into_string();
+            .into();
         let header_content = format!("Client-ID {}", &plugin_conf!(rtd, imgur).api_key);
 
         headers.insert(header::AUTHORIZATION, header_content.parse()?);
@@ -74,10 +77,7 @@ static REQUEST_URL: &str = "http://127.0.0.1:28284/3/";
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        thread,
-        time::Duration,
-    };
+    use std::{thread, time::Duration};
     use tiny_http::Response;
 
     #[test]
@@ -110,7 +110,9 @@ mod tests {
         let url = "https://imgur.com/gallery/0pVuZq8";
         let res = plugin.evaluate(&rtd, &url.parse().unwrap());
         assert!(res.is_err());
-        if let Err(e) = res { assert_eq!(&format!("{}", e), "Can't get http client"); }
+        if let Err(e) = res {
+            assert_eq!(&format!("{}", e), "Can't get http client");
+        }
     }
 
     #[test]
@@ -125,9 +127,9 @@ mod tests {
             let server = tiny_http::Server::http(bind).unwrap();
             let rq = server.recv().unwrap();
             if rq.url().to_string().starts_with("/3/") {
-                    let resp = Response::from_string(response);
-                    thread::sleep(Duration::from_millis(10));
-                    rq.respond(resp).unwrap();
+                let resp = Response::from_string(response);
+                thread::sleep(Duration::from_millis(10));
+                rq.respond(resp).unwrap();
             }
         });
 

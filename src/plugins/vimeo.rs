@@ -1,17 +1,18 @@
-use reqwest::{Url, header, header::HeaderMap};
-use failure::{Error, bail};
-use serde::{Serialize, Deserialize};
+use failure::{bail, Error};
+use reqwest::{header, header::HeaderMap, Url};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    plugin_conf, config::Rtd,
-    plugins::{TitlePlugin, PluginConfig},
+    config::Rtd,
+    plugin_conf,
+    plugins::{PluginConfig, TitlePlugin},
 };
 
 /// Vimeo title plugin configuration structure
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
 pub struct Config {
-    api_key: String
+    api_key: String,
 }
 
 /// Vimeo title plugin
@@ -21,22 +22,24 @@ pub struct VimeoPlugin {}
 static REQUEST_URL: &str = "https://api.vimeo.com/";
 
 impl TitlePlugin for VimeoPlugin {
+    fn name(&self) -> &'static str {
+        "vimeo"
+    }
 
-    fn name(&self) -> &'static str { "vimeo" }
-
-    fn check(&self, config: &PluginConfig, url:&Url) -> bool {
+    fn check(&self, config: &PluginConfig, url: &Url) -> bool {
         if config.vimeo.api_key.is_empty() {
             false
         } else {
-            url.domain() == Some("vimeo.com")
-            || url.domain() == Some("www.vimeo.com")
+            url.domain() == Some("vimeo.com") || url.domain() == Some("www.vimeo.com")
         }
     }
 
     fn evaluate(&self, rtd: &Rtd, url: &Url) -> Result<String, Error> {
         let video_id = url.path()[1..].to_string();
         let mut req_url = Url::parse(REQUEST_URL)?;
-        req_url.path_segments_mut().unwrap()
+        req_url
+            .path_segments_mut()
+            .unwrap()
             .push("videos")
             .push(&video_id);
         let client = match rtd.get_client() {
@@ -49,7 +52,7 @@ impl TitlePlugin for VimeoPlugin {
         headers.insert(header::AUTHORIZATION, header_content.parse()?);
 
         let res = client
-            .request_with_headers(&req_url.into_string(), headers)?
+            .request_with_headers(req_url.as_str(), headers)?
             .json::<Resp>()?;
 
         Ok(res.name)
@@ -60,7 +63,7 @@ impl TitlePlugin for VimeoPlugin {
 
 #[derive(Debug, Deserialize)]
 struct Resp {
-    name: String
+    name: String,
 }
 
 #[cfg(test)]
@@ -69,10 +72,7 @@ static REQUEST_URL: &str = "http://127.0.0.1:28286/";
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        thread,
-        time::Duration,
-    };
+    use std::{thread, time::Duration};
     use tiny_http::Response;
 
     #[test]
@@ -109,7 +109,9 @@ mod tests {
         let url = "https://vimeo.com/53603603";
         let res = plugin.evaluate(&rtd, &url.parse().unwrap());
         assert!(res.is_err());
-        if let Err(e) = res { assert_eq!(&format!("{}", e), "Can't get http client"); }
+        if let Err(e) = res {
+            assert_eq!(&format!("{}", e), "Can't get http client");
+        }
     }
 
     #[test]
@@ -118,15 +120,15 @@ mod tests {
         let rtd = Rtd::new().init_http_client().unwrap();
         let bind = "127.0.0.1:28286";
         let url = "https://vimeo.com/53603603";
-        let response=r#"{"uri":"/videos/53603603","name":"CAPTAIN MURPHY'S DUALITY","description":"HTTP://CAPTAINMURPHY.XXX\nVideobyXavierMagotakaRevenge","type":"video","link":"https://vimeo.com/53603603","duration":2130,"width":450,"language":null,"height":360,"embed":{"html":"<iframesrc=\"https://player.vimeo.com/video/53603603?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=219170\"width=\"450\"height=\"360\"frameborder=\"0\"allow=\"autoplay;fullscreen;picture-in-picture\"allowfullscreentitle=\"CAPTAINMURPHY&amp;#039;SDUALITY\"></iframe>","badges":{"hdr":false,"live":{"streaming":false,"archived":false},"staff_pick":{"normal":false,"best_of_the_month":false,"best_of_the_year":false,"premiere":false},"vod":false,"weekend_challenge":false}},"created_time":"2012-11-15T15:47:01+00:00","modified_time":"2021-07-10T14:22:06+00:00","release_time":"2012-11-15T15:47:01+00:00","content_rating":["unrated"],"license":null,"privacy":{"view":"anybody","embed":"public","download":false,"add":false,"comments":"nobody"}}"#;
+        let response = r#"{"uri":"/videos/53603603","name":"CAPTAIN MURPHY'S DUALITY","description":"HTTP://CAPTAINMURPHY.XXX\nVideobyXavierMagotakaRevenge","type":"video","link":"https://vimeo.com/53603603","duration":2130,"width":450,"language":null,"height":360,"embed":{"html":"<iframesrc=\"https://player.vimeo.com/video/53603603?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=219170\"width=\"450\"height=\"360\"frameborder=\"0\"allow=\"autoplay;fullscreen;picture-in-picture\"allowfullscreentitle=\"CAPTAINMURPHY&amp;#039;SDUALITY\"></iframe>","badges":{"hdr":false,"live":{"streaming":false,"archived":false},"staff_pick":{"normal":false,"best_of_the_month":false,"best_of_the_year":false,"premiere":false},"vod":false,"weekend_challenge":false}},"created_time":"2012-11-15T15:47:01+00:00","modified_time":"2021-07-10T14:22:06+00:00","release_time":"2012-11-15T15:47:01+00:00","content_rating":["unrated"],"license":null,"privacy":{"view":"anybody","embed":"public","download":false,"add":false,"comments":"nobody"}}"#;
 
         let server_thread = thread::spawn(move || {
             let server = tiny_http::Server::http(bind).unwrap();
             let rq = server.recv().unwrap();
             if rq.url().to_string().starts_with('/') {
-                    let resp = Response::from_string(response);
-                    thread::sleep(Duration::from_millis(10));
-                    rq.respond(resp).unwrap();
+                let resp = Response::from_string(response);
+                thread::sleep(Duration::from_millis(10));
+                rq.respond(resp).unwrap();
             }
         });
 

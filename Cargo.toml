@@ -1,6 +1,6 @@
 [package]
 name = "url-bot-rs"
-version = "0.4.3"
+version = "0.5.0"
 description = "Minimal IRC URL bot in Rust"
 keywords = ["irc", "bot", "title"]
 repository = "https://github.com/nuxeh/url-bot-rs"
@@ -8,7 +8,7 @@ authors = ["Edward Cragg <drq.11235@gmail.com>"]
 license = "ISC"
 readme = "README.md"
 build = "build.rs"
-edition = "2018"
+edition = "2021"
 include = [
   "src/**/*",
   "build.rs",
@@ -19,44 +19,44 @@ include = [
 ]
 
 [build-dependencies]
-built = { version = "0.5.1", features = ["git2"] }
+built = { version = "0.7.5", features = ["git2"] }
 man = "0.3.0"
 
 [dev-dependencies]
-tiny_http = "0.11.0"
+tiny_http = "0.12.0"
 diff = "0.1.13"
-tempfile = "3.3.0"
+tempfile = "3.17.0"
 
 [dependencies]
 irc = "0.13.6"
 tokio-core = "0.1.18"
-rusqlite = "0.14.0"
+rusqlite = "0.32.1"
 chrono = "0.4.19"
 docopt = "1.1.1"
-serde = "1.0.136"
-serde_derive = "1.0.104"
+serde = "1.0.217"
+serde_derive = "1.0.217"
 itertools = "0.10.3"
 regex = "1.6.0"
 lazy_static = "1.4.0"
 failure = "0.1.8"
-reqwest = { version = "0.11.5", features = ["blocking", "cookies", "json"] }
-serde_rusqlite = "0.14.0"
+reqwest = { version = "0.12.14", features = ["blocking", "cookies", "json"] }
+serde_rusqlite = "0.36.0"
 mime = "0.3.16"
 humansize = "1.1.1"
 unicode-segmentation = "1.9.0"
-toml = "0.5.9"
+toml = "0.8.19"
 directories = "4.0.1"
 log = "0.4.17"
 stderrlog = "0.5.3"
 atty = "0.2.14"
-scraper = { version = "0.13.0", default-features = false, features = [] }
+scraper = { version = "0.22.0", default-features = false, features = [] }
 phf = "0.7.24"
-openssl = { version = "0.10.41", features = ["vendored"], optional = true }
+openssl = { version = "0.10.69", features = ["vendored"], optional = true }
 
 [dependencies.image]
-version = "0.22.5"
+version = "0.25.5"
 default-features = false
-features = ["gif_codec", "jpeg", "png_codec", "pnm", "tiff", "bmp"]
+features = ["gif", "jpeg", "png", "pnm", "tiff", "bmp"]
 
 [features]
 default = []
